@@ -1,23 +1,20 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Navigation from './components/Navigation';
 import Home from './pages/Home';
 import About from './pages/About';
-import Contact from './pages/Contact';
+import Navigation from './components/Navigation';
+import Contact from "./pages/Contact.tsx";
 
 function App() {
     return (
         <Router>
-            <div className="min-h-screen">
-                <Navigation />
-
-                <main className="container mx-auto">
-                    <Routes>
-                        <Route path="/" element={<Home />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/contact" element={<Contact />} />
-                    </Routes>
-                </main>
-            </div>
+            <Navigation />
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                {/* Aggiungi questa route per gestire gli URL non riconosciuti */}
+                <Route path="*" element={<div>404 - Pagina non trovata</div>} />
+            </Routes>
         </Router>
     );
 }
