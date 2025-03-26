@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node --experimental-vm-modules index.js",
-    "dev": "nodemon --experimental-vm-modules index.js"
+    "start": "node --experimental-vm-modules index.cjs",
+    "dev": "nodemon --experimental-vm-modules index.cjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': { //Rendirizza le chiamte api al backend
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false
       }

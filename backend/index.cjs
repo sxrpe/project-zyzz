@@ -3,12 +3,35 @@ const cors = require('cors');
 const db = require('./db.cjs');  // Nota l'estensione .cjs
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 app.use(cors());
 app.use(express.json());
+//Controllo Connessione derver
+const { Pool } = require('pg');
+
+const pool = new Pool({
+    user: 'tuo_user',
+    host: 'localhost',
+    database: 'tuo_db',
+    password: 'tua_password',
+    port: 5432
+});
+
+// Aggiungi questo per debug
+pool.on('connect', () => console.log('✅ Connesso al DB'));
+pool.on('error', (err) => console.error('❌ Errore DB:', err));
+
+module.exports = {
+    query: (text, params) => {
+        console.log('📌 Esecuzione query:', text); // Log della query
+        return pool.query(text, params);
+    }
+};
 
 
+
+//Controllo Backend
 app.get('/', (req, res) => {
     res.send('Backend funzionante! Visita /api/test per verificare il DB');
 });
@@ -32,39 +55,31 @@ app.get('/api/test', async (req, res) => {
     }
 });
 
-// Route per il form di contatto (con salvataggio su DB)
-app.post('/api/contact', async (req, res) => {
-    const { name, email, message } = req.body;
 
-    // Validazione
+
+app.post('/api/contact', async (req, res) => {
+    console.log('📨 Body ricevuto:', req.body); // Log del payload
+
+    const { name, email, message } = req.body;
     if (!name || !email || !message) {
-        return res.status(400).json({
-            success: false,
-            error: 'Tutti i campi sono obbligatori'
-        });
+        console.log('❌ Validazione fallita');
+        return res.status(400).json({ error: 'Campi mancanti' });
     }
 
     try {
-        // Salva nel database
-        const result = await db.query(
-            'INSERT INTO contacts (name, email, message) VALUES ($1, $2, $3) RETURNING *',
-            [name, email, message]
-        );
+        const queryText = 'INSERT INTO contacts (name, email, message) VALUES ($1, $2, $3) RETURNING *';
+        console.log('🔍 Query:', queryText, [name, email, message]);
 
-        // Risposta di successo
-        res.json({
-            success: true,
-            data: result.rows[0],
-            message: 'Messaggio ricevuto e salvato nel DB!'
-        });
+        const result = await db.query(queryText, [name, email, message]);
+        console.log('💾 Risultato DB:', result.rows);
+
+        res.json({ success: true, data: result.rows[0] });
     } catch (err) {
-        console.error('Errore salvataggio DB:', err);
-        res.status(500).json({
-            success: false,
-            error: 'Errore nel salvataggio del messaggio'
-        });
+        console.error('🔥 Errore grave:', err);
+        res.status(500).json({ error: 'Errore DB', details: err.message });
     }
 });
+
 
 // Avvio server
 app.listen(port, () => {

@@ -27,7 +27,7 @@ export default function Contact() {
 
         try {
             // 1. Invio i dati al backend
-            const response = await axios.post('http://localhost:3000/api/contact', formData);
+            const response = await axios.post('http://localhost:3001/api/contact', formData);
 
             // 2. Gestione della risposta
             if (response.data.success) {
