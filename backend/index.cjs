@@ -1,50 +1,66 @@
+//----------RESOURCES & REQUIRE
+//Base Backend
 const express = require('express');
 const cors = require('cors');
-const db = require('./db.cjs');  // Nota l'estensione .cjs
+//Variabili d'Ambiente
+require('dotenv').config();
 
+
+
+
+//----------CONF BASE BACKEND
+//Conf Base Backend Express
 const app = express();
-const port = 3001;
+app.use(cors());//Accettare richieste da piu' socket
+app.use(express.json()); //Parsing in json del corpo delle richieste https
 
-app.use(cors());
-app.use(express.json());
-//Controllo Connessione derver
-const { Pool } = require('pg');
+//----------DATABASE
 
-const pool = new Pool({
-    user: 'tuo_user',
-    host: 'localhost',
-    database: 'tuo_db',
-    password: 'tua_password',
-    port: 5432
-});
+//Credentials
+const db = require('./db.cjs');
 
-// Aggiungi questo per debug
-pool.on('connect', () => console.log('✅ Connesso al DB'));
-pool.on('error', (err) => console.error('❌ Errore DB:', err));
-
-module.exports = {
-    query: (text, params) => {
-        console.log('📌 Esecuzione query:', text); // Log della query
-        return pool.query(text, params);
+// Debug
+const checkConnection = async () => {
+    try {
+        const client = await db.connect();
+        console.log('✅ Connessione stabilita');
+        client.release(); // Rilascia la connessione
+    } catch (err) {
+        console.error('❌ Errore di connessione:', err);
     }
 };
 
+checkConnection();
+
+// Eventi di errore
+db.on('error', (err) => console.error('❌ Errore DB:', err));
+
+process.on('SIGINT', async () => {
+    console.log('🔌 Chiudendo il pool...');
+    await db.end();
+    process.exit(0);
+});
 
 
+//----------ROUTE API
+const Backend_port = 3001;
 //Controllo Backend
 app.get('/', (req, res) => {
     res.send('Backend funzionante! Visita /api/test per verificare il DB');
 });
 
-// Route API esistente
+//Route API esistente
 app.get('/api', (req, res) => {
     res.json({ message: 'Hello from backend!' });
 });
 
-// Route di test per il database
+//Route : /api/test (Test Connessione DB)
 app.get('/api/test', async (req, res) => {
     try {
-        const result = await db.query('SELECT NOW() as current_time');
+
+        await db.query("SET timezone = 'Europe/Rome';");
+        const result = await db.query('SELECT NOW() as current_time;');
+        console.log('Ora corretta:', result.rows[0].current_time);
         res.json({
             message: 'Connessione al DB riuscita!',
             time: result.rows[0].current_time
@@ -56,7 +72,7 @@ app.get('/api/test', async (req, res) => {
 });
 
 
-
+//Route : /api/contact
 app.post('/api/contact', async (req, res) => {
     console.log('📨 Body ricevuto:', req.body); // Log del payload
 
@@ -82,6 +98,6 @@ app.post('/api/contact', async (req, res) => {
 
 
 // Avvio server
-app.listen(port, () => {
-    console.log(`Server in ascolto su http://localhost:${port}`);
+app.listen(Backend_port, () => {
+    console.log(`Backend in ascolto su http://localhost:${Backend_port}`);
 });
