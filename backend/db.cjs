@@ -16,4 +16,28 @@ const pool = new Pool({
     query: (text, params) => pool.query(text, params) // Incapsula l'accesso al pool
 };
 */
+
+// Debug
+const checkConnection = async () => {
+    try {
+        const client = await pool.connect();
+        console.log('✅ Connessione stabilita');
+        client.release(); // Rilascia la connessione
+    } catch (err) {
+        console.error('❌ Errore di connessione:', err);
+    }
+};
+
+checkConnection();
+
+// Eventi di errore
+pool.on('error', (err) => console.error('❌ Errore DB:', err));
+
+process.on('SIGINT', async () => {
+    console.log('🔌 Chiudendo il pool...');
+    await pool.end();
+    process.exit(0);
+});
+
+
 module.exports = pool;

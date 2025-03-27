@@ -2,11 +2,6 @@
 //Base Backend
 const express = require('express');
 const cors = require('cors');
-//Variabili d'Ambiente
-require('dotenv').config();
-
-
-
 
 //----------CONF BASE BACKEND
 //Conf Base Backend Express
@@ -17,34 +12,19 @@ app.use(express.json()); //Parsing in json del corpo delle richieste https
 //----------DATABASE
 
 //Credentials
-const db = require('./db.cjs');
 
-// Debug
-const checkConnection = async () => {
-    try {
-        const client = await db.connect();
-        console.log('✅ Connessione stabilita');
-        client.release(); // Rilascia la connessione
-    } catch (err) {
-        console.error('❌ Errore di connessione:', err);
-    }
-};
 
-checkConnection();
-
-// Eventi di errore
-db.on('error', (err) => console.error('❌ Errore DB:', err));
-
-process.on('SIGINT', async () => {
-    console.log('🔌 Chiudendo il pool...');
-    await db.end();
-    process.exit(0);
-});
 
 
 //----------ROUTE API
+//Request → Logging Middlewares → JSON Parser → Route Handler → Error Handler(next(err))
 const Backend_port = 3001;
+const testRoutes = require('./routes/testRoute.cjs');
+const contactRoutes = require('./routes/contactRoute.cjs');
+
+
 //Controllo Backend
+/*
 app.get('/', (req, res) => {
     res.send('Backend funzionante! Visita /api/test per verificare il DB');
 });
@@ -53,48 +33,42 @@ app.get('/', (req, res) => {
 app.get('/api', (req, res) => {
     res.json({ message: 'Hello from backend!' });
 });
+*/
 
-//Route : /api/test (Test Connessione DB)
-app.get('/api/test', async (req, res) => {
-    try {
 
-        await db.query("SET timezone = 'Europe/Rome';");
-        const result = await db.query('SELECT NOW() as current_time;');
-        console.log('Ora corretta:', result.rows[0].current_time);
-        res.json({
-            message: 'Connessione al DB riuscita!',
-            time: result.rows[0].current_time
-        });
-    } catch (err) {
-        console.error('Errore DB:', err);
-        res.status(500).send('Errore del server');
-    }
+//----------MIDDLEWARE
+// Middleware per /api/*
+app.use('/api', (req, res, next) => {
+    console.log(`📡 API Request: ${req.method} ${req.originalUrl}`);
+    next();
 });
 
-
-//Route : /api/contact
-app.post('/api/contact', async (req, res) => {
-    console.log('📨 Body ricevuto:', req.body); // Log del payload
-
-    const { name, email, message } = req.body;
-    if (!name || !email || !message) {
-        console.log('❌ Validazione fallita');
-        return res.status(400).json({ error: 'Campi mancanti' });
-    }
-
-    try {
-        const queryText = 'INSERT INTO contacts (name, email, message) VALUES ($1, $2, $3) RETURNING *';
-        console.log('🔍 Query:', queryText, [name, email, message]);
-
-        const result = await db.query(queryText, [name, email, message]);
-        console.log('💾 Risultato DB:', result.rows);
-
-        res.json({ success: true, data: result.rows[0] });
-    } catch (err) {
-        console.error('🔥 Errore grave:', err);
-        res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
+// Middleware per /auth/*
+app.use('/auth', (req, res, next) => {
+    console.log(`🔐 Auth Request: IP ${req.ip} tried ${req.path}`);
+    next();
 });
+// Middleware per il parsing del JSON
+app.use(express.json());
+
+
+//----------ROUTES
+app.use(testRoutes);
+app.use(contactRoutes);
+/*Se il metodo (get/post) nonc ombacia viene generato un'errore 404 */
+
+
+//----------ERROR-HANDLER
+
+//Attivazione: Solo se un middleware precedente chiama next(err).
+app.use((err, req, res) => {
+    console.error('💥 Errore:', err);
+    res.status(500).json({
+        error: 'Errore interno del server',
+        ...(process.env.NODE_ENV === 'development' && { details: err.message })
+    });
+});
+
 
 
 // Avvio server
