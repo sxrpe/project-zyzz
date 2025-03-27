@@ -61,7 +61,13 @@ app.use(contactRoutes);
 //----------ERROR-HANDLER
 
 //Attivazione: Solo se un middleware precedente chiama next(err).
-app.use((err, req, res) => {
+//Avviso al Frontend
+app.use((req, res, next) => {
+    res.status(404).json({ error: 'Endpoint non trovato' });
+    console.log("   ❌  Endpoint non trovato");
+});
+
+app.use((err, req, res,next ) => {
     console.error('💥 Errore:', err);
     res.status(500).json({
         error: 'Errore interno del server',
